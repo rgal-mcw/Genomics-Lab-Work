@@ -1,0 +1,100 @@
+ID	Type	Description	from
+CHROM	String	Chromosome that call lies on	VCF
+POS	Integer	Position that call falls on	VCF
+ID	String	identifier: Semicolon-separated list of unique identifiers where available. If this is a dbSNP variant it is encouraged to use the rs number(s).	VCF
+REF	String	Comma separated list of alternate non-reference alleles.	VCF
+ALT	String	Symbolic alternate alleles for imprecise structural variants	VCF
+QUAL	Integer	"Phred-scaled quality score for the assertion made in ALT. i.e. _10log10 prob(call in ALT is wrong). If ALT is Ô.Õ (no variant) then this is _10log10 prob(variant), and if ALT is not Ô.Õ this is _10log10 prob(no variant). If unknown, the missing value should be specified. (Numeric)"	VCF
+GT	String	"PASS if this position has passed all filters, i.e., a call is made at this position. Otherwise, if the site has not passed all filters, a semicolon-separated list of codes for filters that fail."	VCF
+DP	Integer	Read Depth	VCF
+GQ	Integer	conditional genotype quality	VCF
+VAF	Float	Variant Allele Fraction	
+ANN	String	Functional annotations: 'Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p | cDNA.pos / cDNA.length | CDS.pos / CDS.length | AA.pos / AA.length | Distance | ERRORS / WARNINGS / INFO' 	SnpEff
+LOF	String	Predicted loss of function effects for this variant. Format: 'Gene_Name | Gene_ID | Number_of_transcripts_in_gene | Percent_of_transcripts_affected'	SnpEff
+NMD	String	Predicted nonsense mediated decay effects for this variant. Format: 'Gene_Name | Gene_ID | Number_of_transcripts_in_gene | Percent_of_transcripts_affected'	SnpEff
+CDA	Flag	Variation is interrogated in a clinical diagnostic assay	dbSNP
+OTH	Flag	Has other variant with exactly the same set of mapped positions on NCBI refernce assembly.	dbSNP
+S3D	Flag	Has 3D structure - SNP3D table	dbSNP
+WTD	Flag	"Is Withdrawn by submitter If one member ss is withdrawn by submitter, then this bit is set.  If all member ss' are withdrawn, then the rs is deleted to SNPHistory"	dbSNP
+dbSNPBuildID	Integer	First dbSNP Build for RS	dbSNP
+SLO	Flag	Has SubmitterLinkOut - From SNP->SubSNP->Batch.link_out	dbSNP
+NSF	Flag	Has non-synonymous frameshift A coding region variation where one allele in the set changes all downstream amino acids. FxnClass = 44	dbSNP
+R3	Flag	In 3' gene region FxnCode = 13	dbSNP
+R5	Flag	In 5' gene region FxnCode = 15	dbSNP
+NSN	Flag	Has non-synonymous nonsense A coding region variation where one allele in the set changes to STOP codon (TER). FxnClass = 41	dbSNP
+NSM	Flag	Has non-synonymous missense A coding region variation where one allele in the set changes protein peptide. FxnClass = 42	dbSNP
+G5A	Flag	>5% minor allele frequency in each and all populations	dbSNP
+COMMON	Integer	RS is a common SNP.  A common SNP is one that has at least one 1000Genomes population with a minor allele of frequency >= 1% and for which 2 or more founders contribute to that minor allele frequency.	dbSNP
+RS	Integer	dbSNP ID (i.e. rs number)	dbSNP
+RV	Flag	RS orientation is reversed	dbSNP
+TPA	Flag	Provisional Third Party Annotation(TPA) (currently rs from PHARMGKB who will give phenotype data)	dbSNP
+CFL	Flag	Has Assembly conflict. This is for weight 1 and 2 variant that maps to different chromosomes on different assemblies.	dbSNP
+GNO	Flag	Genotypes available. The variant has individual genotype (in SubInd table).	dbSNP
+VLD	Flag	Is Validated.  This bit is set if the variant has 2+ minor allele count based on frequency or genotype data.	dbSNP
+ASP	Flag	Is Assembly specific. This is set if the variant only maps to one assembly	dbSNP
+ASS	Flag	In acceptor splice site FxnCode = 73	dbSNP
+REF	Flag	Has reference A coding region variation where one allele in the set is identical to the reference sequence. FxnCode = 8	dbSNP
+U3	Flag	In 3' UTR Location is in an untranslated region (UTR). FxnCode = 53	dbSNP
+U5	Flag	In 5' UTR Location is in an untranslated region (UTR). FxnCode = 55	dbSNP
+TOPMED	String	"An ordered, comma delimited list of allele frequencies based on TOPMed, starting with the reference allele followed by alternate alleles as ordered in the ALT column. The TOPMed minor allele is the second largest value in the list."	dbSNP
+WGT	Integer	"Weight, 00 - unmapped, 1 - weight 1, 2 - weight 2, 3 - weight 3 or more"	dbSNP
+MTP	Flag	"Microattribution/third-party annotation(TPA:GWAS,PAGE)"	dbSNP
+LSD	Flag	Submitted from a locus-specific database	dbSNP
+NOC	Flag	"Contig allele not present in variant allele list. The reference sequence allele at the mapped position is not present in the variant allele list, adjusted for orientation."	dbSNP
+DSS	Flag	In donor splice-site FxnCode = 75	dbSNP
+SYN	Flag	Has synonymous A coding region variation where one allele in the set does not change the encoded amino acid. FxnCode = 3	dbSNP
+KGPhase3	Flag	1000 Genome phase 3	dbSNP
+CAF	String	"An ordered, comma delimited list of allele frequencies based on 1000Genomes, starting with the reference allele followed by alternate alleles as ordered in the ALT column. Where a 1000Genomes alternate allele is not in the dbSNPs alternate allele set, the allele is added to the ALT column. The minor allele is the second largest value in the list, and was previuosly reported in VCF as the GMAF. This is the GMAF reported on the RefSNP and EntrezSNP pages and VariationReporter"	dbSNP
+VC	String	Variation Class	dbSNP
+MUT	Flag	"Is mutation (journal citation, explicit fact): a low frequency variation that is cited in journal and other reputable sources"	dbSNP
+KGPhase1	Flag	1000 Genome phase 1 (incl. June Interim phase 1)	dbSNP
+NOV	Flag	Rs cluster has non-overlapping allele sets. True when rs set has more than 2 alleles from different submissions and these sets share no alleles in common.	dbSNP
+VP	String	Variation Property.  Documentation is at ftp://ftp.ncbi.nlm.nih.gov/snp/specs/dbSNP_BitField_latest.pdf	dbSNP
+SAO	Integer	"Variant Allele Origin: 0 - unspecified, 1 - Germline, 2 - Somatic, 3 - Both"	dbSNP
+GENEINFO	String	Pairs each of gene symbol:gene id.  The gene symbol and id are delimited by a colon (:) and each pair is delimited by a vertical bar (|)	dbSNP
+INT	Flag	In Intron FxnCode = 6	dbSNP
+G5	Flag	>5% minor allele frequency in 1+ populations	dbSNP
+OM	Flag	Has OMIM/OMIA	dbSNP
+PMC	Flag	Links exist to PubMed Central article	dbSNP
+SSR	Integer	"Variant Suspect Reason Codes (may be more than one value added together) 0 - unspecified, 1 - Paralog, 2 - byEST, 4 - oldAlign, 8 - Para_EST, 16 - 1kg_failed, 1024 - other"	dbSNP
+RSPOS	Integer	Chr position reported in dbSNP	dbSNP
+HD	Flag	Marker is on high density genotyping kit (50K density or greater).  The variant may have phenotype associations present in dbGaP.	dbSNP
+PM	Flag	"Variant is Precious(Clinical,Pubmed Cited)"	dbSNP
+DBVARID	String	nsv accessions from dbVar for the variant	ClinVar
+ALLELEID	Integer	the ClinVar Allele ID	ClinVar
+CLNSIG	String	Aggregate germline classification for this single variant; multiple values are separated by a vertical bar	ClinVar
+CLNVCSO	String	Sequence Ontology id for variant type	ClinVar
+SCIDNINCL	String	For included variant: ClinVar's preferred disease name for the concept specified by disease identifiers in SCIDISDBINCL	ClinVar
+CLNREVSTAT	String	ClinVar review status of germline classification for the Variation ID	ClinVar
+ONCREVSTAT	String	ClinVar review status of oncogenicity classification for the Variation ID	ClinVar
+CLNDNINCL	String	For included Variant : ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB	ClinVar
+ONC	String	Aggregate oncogenicity classification for this single variant; multiple values are separated by a vertical bar	ClinVar
+ORIGIN	String	Allele origin. One or more of the following values may be added: 0 - unknown; 1 - germline; 2 - somatic; 4 - inherited; 8 - paternal; 16 - maternal; 32 - de-novo; 64 - biparental; 128 - uniparental; 256 - not-tested; 512 - tested-inconclusive; 1073741824 - other	ClinVar
+ONCINCL	String	Oncogenicity classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar	ClinVar
+ONCDNINCL	String	For included variant: ClinVar's preferred disease name for the concept specified by disease identifiers in ONCDISDBINCL	ClinVar
+ONCDISDB	String	"Tag-value pairs of disease database name and identifier submitted for oncogenicity classifications, e.g. MedGen:NNNNNN"	ClinVar
+SCIREVSTAT	String	ClinVar review status of somatic clinical impact for the Variation ID	ClinVar
+ONCDISDBINCL	String	"For included variant: Tag-value pairs of disease database name and identifier for oncogenicity classifications, e.g. OMIM:NNNNNN"	ClinVar
+MC	String	comma separated list of molecular consequence in the form of Sequence Ontology ID|molecular_consequence	ClinVar
+CLNDN	String	ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB	ClinVar
+ONCCONF	String	Conflicting oncogenicity classification for this single variant; multiple values are separated by a vertical bar	ClinVar
+CLNVC	String	Variant type	ClinVar
+SCIDISDB	String	"Tag-value pairs of disease database name and identifier submitted for somatic clinial impact classifications, e.g. MedGen:NNNNNN"	ClinVar
+CLNVI	String	the variant's clinical sources reported as tag-value pairs of database and variant identifier	ClinVar
+AF_EXAC	Float	allele frequencies from ExAC	ClinVar
+ONCDN	String	ClinVar's preferred disease name for the concept specified by disease identifiers in ONCDISDB	ClinVar
+AF_ESP	Float	allele frequencies from GO-ESP	ClinVar
+CLNSIGINCL	String	Germline classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar	ClinVar
+CLNDISDB	String	"Tag-value pairs of disease database name and identifier submitted for germline classifications, e.g. OMIM:NNNNNN"	ClinVar
+CLNDISDBINCL	String	"For included Variant: Tag-value pairs of disease database name and identifier for germline classifications, e.g. OMIM:NNNNNN"	ClinVar
+AF_TGP	Float	allele frequencies from TGP	ClinVar
+CLNSIGCONF	String	Conflicting germline classification for this single variant; multiple values are separated by a vertical bar	ClinVar
+SCIDISDBINCL	String	"For included variant: Tag-value pairs of disease database name and identifier for somatic clinical impact classifications, e.g. OMIM:NNNNNN"	ClinVar
+CLNHGVS	String	"Top-level (primary assembly, alt, or patch) HGVS expression."	ClinVar
+SCIINCL	String	Somatic clinical impact classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar	ClinVar
+SCIDN	String	ClinVar's preferred disease name for the concept specified by disease identifiers in SCIDISDB	ClinVar
+SCI	String	Aggregate somatic clinical impact for this single variant; multiple values are separated by a vertical bar	ClinVar
+MC_Details	String	ANN field is parsed and all MC's are output with the frequency of each MC in (*) next to it. Comma separated for multiple.	Added
+IMPACT_Details	String	ANN field is parsed and all IMPACT predictions are output with the frequencies in (*) next to them. Comma separated for multiple.	Added
+GENE_Details	String	ANN field is parsed and all Genes called are output with the frequencies in (*) next to them. Comma separated for multiple.	Added
+OMIM_INFO	String	OMIM data (from omim.org) is formatted using 'OMIM.py' and attached. Gene fields are attached based on the genes in GENE_Details.	Added
