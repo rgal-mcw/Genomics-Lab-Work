@@ -26,7 +26,6 @@ The pipeline executes the following sequence of bioinformatics tasks:
 5.  **SNP Annotation:**
     * Annotates the phased VCF from PMDV using `snpEff` and `SnpSift`.
     * Adds annotations from ClinVar.
-    * *(Note: dbSNP annotation was present in older `.sh` scripts but appears removed/commented out in `snpeff.py`)*
     * *(Note: An optional `filter_snpeff_vcf.py` script exists but is not called by the main `pipeline.py`. It needs to be run separately)*
 6.  **Structural Variant (SV) Calling (General):**
     * Calls various types of structural variants using `Sniffles2` on the haplotagged BAM from PMDV.
@@ -71,3 +70,26 @@ The main pipeline is executed using `pipeline.py`.
 # source activate spectre
 
 python pipeline.py <sample_name> <promethion_data_dir> <maple_output_dir> [--log-level LEVEL]
+```
+## Help Output
+
+```
+usage: pipeline.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                   sample_name data_dir to_dir
+
+ONT PromethION Data Processing Pipeline.
+
+positional arguments:
+  sample_name           The name of the sample being processed. This should
+                        match a created directory.
+  data_dir              Full path to the directory containing the sample data
+                        on the PromethION server (e.g.,
+                        /data/run_folder/sample_subfolder/).
+  to_dir                Full path to the MAPLE directory where output should
+                        be stored (e.g., /data2/flowcell_10.4.1/mcw_svi_.../).
+
+options:
+  -h, --help            show this help message and exit
+  --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        Set the logging level (default: INFO)
+```
