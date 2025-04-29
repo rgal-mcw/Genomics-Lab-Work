@@ -109,106 +109,339 @@ def main():
         logger.error("The MAPLE directory does not exist. Exiting script.")
         sys.exit(1)
     logger.info('The MAPLE directory exists.')
+    log_dir = os.path.join(to_dir, 'logs') # Make sure log_dir is defined
+
 
     #----------------------
-
     # Step 1: Prepare data for Transfer and send to Maple
-    command = f"python ./pipes/file_transfer.py {sample_name} {data_dir} {to_dir} | tee {log_dir}file_transfer.log"
+    logger.info(f"Running Step 1: File Transfer for {sample_name} using file_transfer.py")
+    transfer_command = ["python", "./pipes/file_transfer.py", sample_name, data_dir, to_dir]
+    logger.info("Executing Command:\n" + ' '.join(transfer_command))
+    try:
+        # Run the script, capture output, check return code
+        result_transfer = subprocess.run(transfer_command, check=True, capture_output=True, text=True)
+        # Log stdout/stderr from the script for pipeline context (optional, as script logs itself)
+        if result_transfer.stdout:
+            logger.info(f"file_transfer.py stdout:\n{result_transfer.stdout.strip()}")
+        if result_transfer.stderr:
+            logger.warning(f"file_transfer.py stderr:\n{result_transfer.stderr.strip()}") # Log stderr as warning
+        logger.info("File transfer script executed successfully.")
 
-    result = subprocess.run(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Execution of file_transfer.py failed with exit code {e.returncode}")
+        if e.stdout: logger.error(f"Failed command stdout:\n{e.stdout.strip()}")
+        if e.stderr: logger.error(f"Failed command stderr:\n{e.stderr.strip()}")
+        sys.exit(f"File transfer step (Step 1) failed with exit code {e.returncode}") # Exit pipeline
+    except FileNotFoundError:
+         logger.error("Error: 'python' or './pipes/file_transfer.py' not found.")
+         sys.exit("Failed to execute file transfer script.")
+    except Exception as e:
+         logger.exception("An unexpected error occurred during the file transfer step:")
+         sys.exit("Unexpected error in file transfer step (Step 1).")
 
-    # Exit if subprocess fails
-    if not os.listdir(to_dir):
-        logger.error("File transfer failed")
-        sys.exit(1)
-    
-    logger.info("%%%%%%%%%%%%%\nFINISHED DATA TRANSFER \n%%%%%%%%%%%%%")
+    logger.info("%%%%%%%%%%%%%\nFINISHED STEP 1: DATA TRANSFER \n%%%%%%%%%%%%%")
     #----------------------
 
     # Step 2: Read Alignment (FASTQs w/ GRCh38)
-    if os.path.exists(to_dir + f"raw_data/{sample_name}.fastq.gz"):
-        logger.info(f"Running alignment on {sample_name}")
-        #result3 = subprocess.run(["python", "./pipes/alignment.py", sample_name, to_dir,ref])
-        result3 = subprocess.run(f"python ./pipes/alignment.py {sample_name} {to_dir} {ref} | tee {log_dir}alignment.log", shell=True)
-    else:
-        logger.error("No FASTQ file found. Exiting script.")
-        sys.exit(1)
+    # Note: alignment.py checks for the fastq file internally
+    logger.info(f"Running Step 2: Read Alignment for {sample_name} using alignment.py")
+    alignment_command = ["python", "./pipes/alignment.py", sample_name, to_dir, ref]
+    logger.info("Executing Command:\n" + ' '.join(alignment_command))
+    try:
+        # Run the script, capture output, check return code
+        result_alignment = subprocess.run(alignment_command, check=True, capture_output=True, text=True)
+        # Log stdout/stderr from the script for pipeline context (optional)
+        if result_alignment.stdout:
+            logger.info(f"alignment.py stdout:\n{result_alignment.stdout.strip()}")
+        if result_alignment.stderr:
+            logger.warning(f"alignment.py stderr:\n{result_alignment.stderr.strip()}")
+        logger.info("Alignment script executed successfully.")
 
-    logger.info("%%%%%%%%%%%%%\n FINISHED ALIGNMENT \n%%%%%%%%%%%%%")
-    logger.info('Next Step: SNP/INDEL via PMDV')
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Execution of alignment.py failed with exit code {e.returncode}")
+        if e.stdout: logger.error(f"Failed command stdout:\n{e.stdout.strip()}")
+        if e.stderr: logger.error(f"Failed command stderr:\n{e.stderr.strip()}")
+        sys.exit(f"Alignment step (Step 2) failed with exit code {e.returncode}") # Exit pipeline
+    except FileNotFoundError:
+         logger.error("Error: 'python' or './pipes/alignment.py' not found.")
+         sys.exit("Failed to execute alignment script.")
+    except Exception as e:
+         logger.exception("An unexpected error occurred during the alignment step:")
+         sys.exit("Unexpected error in alignment step (Step 2).")
+
+    logger.info("%%%%%%%%%%%%%\n FINISHED STEP 2: ALIGNMENT \n%%%%%%%%%%%%%")
+    logger.info('Next Step: SNP/INDEL via PMDV') # Message indicating next step remains
 
     #----------------------
     # Step 3: SNP/INDEL via PMDV
 
     if os.path.exists(to_dir + f"{sample_name}.sorted.bam"):
-        logger.info(f"Running PMDV on {sample_name}")
-        snp_indel_dir = to_dir + "snp_indel"
-        bam_file = to_dir + f"{sample_name}.sorted.bam"
-        print("Running Command:\n", ["./pipes/PMDV_pipeline.sh", sample_name, to_dir, snp_indel_dir, ref, bam_file])
-        # Args: sample_name, to_dir, output_dir, ref_file, bam_file, chemistry (default 10.4.1)  
-        result4 = subprocess.run(f"./pipes/PMDV_pipeline.sh {sample_name} {to_dir} {snp_indel_dir} {ref} {bam_file} | tee {log_dir}PMDV.log", shell=True)
-        result_samtools = subprocess.run(f"samtools index -@ 8 '{snp_indel_dir}/{sample_name}_PMDV_wgs.haplotagged.bam'", shell=True)
+        logger.info(f"Running PMDV on {sample_name} using pmdv.py")
+        snp_indel_dir = os.path.join(to_dir, "snp_indel") # Use os.path.join for consistency
+        bam_file = os.path.join(to_dir, f"{sample_name}.sorted.bam") # Use os.path.join
+
+        # Ensure the output directory exists (pmdv.py also does this, but good practice)
+        os.makedirs(snp_indel_dir, exist_ok=True)
+
+        # Construct the command to run pmdv.py
+        pmdv_command = [
+            "python", "./pipes/pmdv.py",
+            "--sample", sample_name,
+            "--input-dir", to_dir,          # Base directory containing the BAM
+            "--output-dir", snp_indel_dir,  # Specific output directory for PMDV
+            "--ref", ref,
+            "--bam", bam_file,
+            "--log-base-dir", to_dir       # Directory where 'logs' subdir resides
+            # Optional: Add --chem or --threads if you need non-default values
+            # "--chem", "your_chemistry",
+            # "--threads", "your_thread_count"
+        ]
+
+        # Log the command being run
+        logger.info("Running Command:\n" + ' '.join(pmdv_command))
+
+        # Execute the pmdv.py script
+        # Note: pmdv.py handles its own logging to pmdv.log within the log_dir
+        try:
+            result_pmdv = subprocess.run(pmdv_command, check=True, capture_output=True, text=True)
+            # Log stdout/stderr from pmdv.py if needed (it already logs to file)
+            if result_pmdv.stdout:
+                logger.info(f"pmdv.py stdout:\n{result_pmdv.stdout.strip()}")
+            if result_pmdv.stderr:
+                logger.warning(f"pmdv.py stderr:\n{result_pmdv.stderr.strip()}") # Log stderr as warning
+            logger.info("pmdv.py script executed successfully.")
+
+            # Index the haplotagged BAM produced by pmdv.py
+            haplotagged_bam = os.path.join(snp_indel_dir, f"{sample_name}_PMDV_wgs.haplotagged.bam")
+            if os.path.exists(haplotagged_bam):
+                 index_command = f"samtools index -@ 8 '{haplotagged_bam}'"
+                 logger.info(f"Indexing haplotagged BAM: {index_command}")
+                 result_samtools = subprocess.run(index_command, shell=True, check=True, capture_output=True, text=True)
+                 logger.info("Haplotagged BAM indexing completed.")
+                 if result_samtools.stderr:
+                     logger.warning(f"samtools index stderr:\n{result_samtools.stderr.strip()}")
+            else:
+                logger.warning(f"Haplotagged BAM not found for indexing: {haplotagged_bam}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Execution of {' '.join(e.cmd)} failed with exit code {e.returncode}")
+            if e.stdout:
+                logger.error(f"Failed command stdout:\n{e.stdout.strip()}")
+            if e.stderr:
+                logger.error(f"Failed command stderr:\n{e.stderr.strip()}")
+            # Decide if you want to exit the pipeline here
+            # sys.exit(f"PMDV step failed with exit code {e.returncode}")
+        except Exception as e:
+             logger.exception("An unexpected error occurred during the PMDV step:")
+             # Decide if you want to exit
+             # sys.exit("Unexpected error in PMDV step.")
+
+
+    else:
+        # This condition remains from the original code
+        logger.error(f"Input BAM file not found: {os.path.join(to_dir, f'{sample_name}.sorted.bam')}. Skipping PMDV.")
+        # Decide if you want to exit here
+        # sys.exit("Input BAM for PMDV not found.")
+
 
     logger.info("%%%%%%%%%%%%%\n FINISHED PMDV SNP/INDEL CALLING \n%%%%%%%%%%%%%")
     logger.info('Next Step: CNV via Spectre')
+    
+
 
     #----------------------
     # Step 4: Large SV via Spectre 
 
     logger.info("NOTE: A dedicated spectre conda environment needs to be created for this part of the pipeline. If this environment is not created yet, do so via instructions from the ont-spectre github documentation.")
 
-    spectre_result = subprocess.run(f"/data/svi/prom/ont_pipeline/pipes/ONT_spectre.sh {to_dir}", shell=True)
+    logger.info(f"Running Spectre step for {sample_name} using ont_spectre.py")
+    spectre_py_command = [
+        "python", "./pipes/ont_spectre.py",
+        "--input-dir", to_dir,
+        "--ref-genome", ref,
+        "--log-base-dir", to_dir
+        # Optional: Add --threads if you want to control mosdepth threads from pipeline.py
+        # "--threads", "16"
+]
+
+    logger.info("Executing Command:\n" + ' '.join(spectre_py_command))
+    try:
+        # Assuming the 'spectre' conda env is active before pipeline.py is run
+        spectre_result = subprocess.run(spectre_py_command, check=True, capture_output=True, text=True)
+        # Log output from ont_spectre.py within pipeline.log for context
+        if spectre_result.stdout:
+            logger.info(f"ont_spectre.py stdout:\n{spectre_result.stdout.strip()}")
+        if spectre_result.stderr:
+            logger.warning(f"ont_spectre.py stderr:\n{spectre_result.stderr.strip()}")
+        logger.info("ont_spectre.py executed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Execution of ont_spectre.py failed with exit code {e.returncode}")
+        if e.stdout: logger.error(f"Failed command stdout:\n{e.stdout.strip()}")
+        if e.stderr: logger.error(f"Failed command stderr:\n{e.stderr.strip()}")
+        # Decide if you want to exit pipeline.py here
+        # sys.exit(f"Spectre step failed.")
+    except Exception as e:
+        logger.exception("An unexpected error occurred during the Spectre step:")
+        # Decide if you want to exit
+        # sys.exit("Unexpected error in Spectre step.")
+
 
     logger.info("%%%%%%%%%%%%%\n FINISHED SPECTRE \n%%%%%%%%%%%%%")
     logger.info('Next Step: SNP Annotation')
-
     #----------------------
 
     # Step 5: SNP Annotation on .phased.vcf file
 
-    if os.path.exists(os.path.expanduser("~/snpEff/snpEff.jar")):
-        logger.info(f"Running snpEff.jar on {sample_name}_PMDV_wgs.phased.vcf")
-        gz = f"{sample_name}_PMDV_wgs.phased.vcf.gz"
-        vcf_snpeff = f"{sample_name}_PMDV_wgs.phased.vcf"
-        out_snpeff = f"{sample_name}_PMDV_wgs.phased.snpeff"
-        snp_indel_dir = to_dir + "snp_indel"
-        command_snpeff = f"./pipes/snpeff.sh {snp_indel_dir} {gz} {vcf_snpeff} {out_snpeff} | tee {log_dir}snpeff.log" 
-        result_snpeff = subprocess.run(command_snpeff, shell=True)
+        # Define paths and prefixes
+    snp_indel_dir = os.path.join(to_dir, "snp_indel") # Use os.path.join for consistency
+    gz = f"{sample_name}_PMDV_wgs.phased.vcf.gz"
+    vcf_unzipped_relative = f"{sample_name}_PMDV_wgs.phased.vcf" # Relative name
+    out_snpeff = f"{sample_name}_PMDV_wgs.phased.snpeff" # Prefix for output
 
-        snpeff_vcf = snp_indel_dir + f"{sample_name}_PMDV_wgs.phased.snpeff.vcf"
+    vcf_unzipped_abs_path = os.path.abspath(os.path.join(snp_indel_dir, vcf_unzipped_relative))
+
+    # Define expected location of snpEff (adjust if different)
+    # Using the path revealed in your previous error log:
+    snpeff_base_dir = "/data/ref/snpEff"
+    snpeff_jar_path = os.path.join(snpeff_base_dir, 'snpEff.jar')
+
+    # Check if snpEff.jar exists before attempting to run
+    if os.path.exists(snpeff_jar_path):
+        logger.info(f"Running snpEff annotation for {sample_name} using snpeff.py")
+        logger.info(f"Using absolute path for VCF: {vcf_unzipped_abs_path}") # Log the path being used
+
+        # Construct the command to run snpeff.py
+        snpeff_py_command = [
+            "python", "./pipes/snpeff.py",
+            "--snp-indel-dir", snp_indel_dir, # Pass the directory path
+            "--vcf-gz", gz,                   # Pass the gzipped filename
+            "--vcf-unzipped", vcf_unzipped_abs_path, # <-- PASS ABSOLUTE PATH HERE
+            "--out-prefix", out_snpeff,
+            "--log-base-dir", to_dir,
+            "--snpeff-base-dir", snpeff_base_dir # Pass the correct snpEff location
+        ]
+
+        # Log the command being run
+        logger.info("Executing Command:\n" + ' '.join(snpeff_py_command))
+
+        # Execute the snpeff.py script
+        try:
+            result_snpeff_py = subprocess.run(snpeff_py_command, check=True, capture_output=True, text=True)
+
+            if result_snpeff_py.stdout:
+                logger.info(f"snpeff.py stdout:\n{result_snpeff_py.stdout.strip()}")
+            if result_snpeff_py.stderr:
+                logger.warning(f"snpeff.py stderr:\n{result_snpeff_py.stderr.strip()}")
+            logger.info("snpeff.py script executed successfully.")
+
+            # Define the expected final output file (adjust if dbSNP step is added back)
+            final_annotated_vcf = os.path.join(snp_indel_dir, f"{out_snpeff}.clinvar.vcf")
+            if not os.path.exists(final_annotated_vcf):
+                 logger.warning(f"Expected final annotated VCF not found after snpeff.py run: {final_annotated_vcf}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Execution of snpeff.py failed with exit code {e.returncode}")
+            if e.stdout: logger.error(f"Failed command stdout:\n{e.stdout.strip()}")
+            if e.stderr: logger.error(f"Failed command stderr:\n{e.stderr.strip()}")
+            # Decide if you want to exit the pipeline here
+            # sys.exit(f"SnpEff step failed with exit code {e.returncode}")
+        except Exception as e:
+             logger.exception("An unexpected error occurred during the SnpEff step:")
+             # Decide if you want to exit
+             # sys.exit("Unexpected error in SnpEff step.")
 
     else:
-        logger.error("No snpEff download found (~/snpEff). Skipping to next step.")
-    
+        logger.error(f"snpEff.jar not found at {snpeff_jar_path}. Skipping SnpEff annotation.")
+        # Decide if you want to exit or just continue
+        # sys.exit("SnpEff dependency missing.")
+
     logger.info("%%%%%%%%%%%%%\n FINISHED SNP ANNOTATION \n%%%%%%%%%%%%%")
     logger.info('Next Step: SV-Calling via SNIFFLES2')
+
+
 
 
     #----------------------
     # Step 6: SV-Calling via SNIFFLES2
     
-    if os.path.exists(to_dir + f"{sample_name}.sorted.bam"):
-        timeout = 360
-        logger.info(f"Running Sniffles2 on {sample_name}") 
+     # Define input BAM (Assuming haplotagged output from PMDV is desired)
+    snp_indel_dir = os.path.join(to_dir, "snp_indel")
+    # *** Check if this is the correct BAM. PMDV produces *.haplotagged.bam ***
+    # If PMDV haplotagging step ran successfully:
+    input_bam_sniffles = os.path.join(snp_indel_dir, f"{sample_name}_PMDV_wgs.haplotagged.bam")
 
-        input_bam = snp_indel_dir + f"/{sample_name}_PMDV_wgs.bam"
-        vcf_name = to_dir + f"{sample_name}.sniffles.vcf"
-        sample_id = sample_name
-        
+    # Define output VCF path
+    vcf_name_sniffles = os.path.join(to_dir, f"{sample_name}.sniffles.vcf")
+    sample_id = sample_name # Redundant, just for clarity
+
+    # Check if the selected input BAM exists
+    if os.path.exists(input_bam_sniffles):
+        logger.info(f"Running Sniffles2 on {sample_name} using sniffles2.py")
+
+        # Define timeout (example: 6 hours = 21600 seconds)
+        # Adjust as needed based on typical run times
+        sniffles_timeout_seconds = 21600
+
+        # Construct the command to run sniffles2.py
+        sniffles2_py_command = [
+            "python", "./pipes/sniffles2.py",
+            "--input-bam", input_bam_sniffles,
+            "--output-vcf", vcf_name_sniffles,
+            "--ref", ref,
+            "--sample-id", sample_id,
+            "--log-base-dir", to_dir,
+            "--threads", "16", # Or make this configurable
+            "--timeout", str(sniffles_timeout_seconds) # Pass timeout to the script
+        ]
+
+        logger.info("Executing Command:\n" + ' '.join(sniffles2_py_command))
+
         try:
-            command4 = f"./pipes/sniffles2.sh {input_bam} {ref} {vcf_name} {sample_id} | tee {log_dir}sniffles2.log"
-            result4 = subprocess.run(command4, shell=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            logger.info("Sniffles2 timed out.")
-            logger.info("ATTENTION: As of 04/25/2024, Sniffles2 will not terminate on its own.\nIf the final message from Sniffles2 that you see before this says:\n'Wrote x called SVs to ~dir~/*.sniffles.vcf' - then the script has completed.\n\nIf you do not see the above message, then the Sniffles2 did NOT complete and TIMEDOUT before completion. If this is the case, manually run Sniffles2!\n\n----------\n----------")
+            # Run sniffles2.py. It handles its own timeout logging now.
+            result_sniffles2_py = subprocess.run(sniffles2_py_command, check=True, capture_output=True, text=True)
 
-    else: 
-        logger.error("No sorted BAM file found. Exiting script.")
-        sys.exit(1)
+            # Log output from sniffles2.py within pipeline.log for context
+            if result_sniffles2_py.stdout:
+                logger.info(f"sniffles2.py stdout:\n{result_sniffles2_py.stdout.strip()}")
+            if result_sniffles2_py.stderr:
+                logger.warning(f"sniffles2.py stderr:\n{result_sniffles2_py.stderr.strip()}")
+            logger.info("sniffles2.py executed successfully.")
 
-    logger.info("%%%%%%%%%%%%%\n FINISHED SNIFFLES2 \n%%%%%%%%%%%%%")
-    subprocess.run("pgrep -x sniffles | xargs kill -9", shell=True)
-    logger.info("Pipeline Complete.")
+        except subprocess.CalledProcessError as e:
+            # Check if the error code indicates a timeout occurred inside sniffles2.py (exit code 1 in the script)
+            if e.returncode == 1 and "Sniffles2 command timed out" in e.stderr: # Check stderr for timeout message
+                 logger.warning("Sniffles2 timed out (as reported by sniffles2.py). Proceeding with cleanup.")
+                 # Don't necessarily exit pipeline.py here, allow cleanup.
+            else:
+                 logger.error(f"Execution of sniffles2.py failed with exit code {e.returncode}")
+                 if e.stdout: logger.error(f"Failed command stdout:\n{e.stdout.strip()}")
+                 if e.stderr: logger.error(f"Failed command stderr:\n{e.stderr.strip()}")
+                 # Decide if you want to exit the pipeline here
+                 # sys.exit(f"Sniffles2 step failed.")
+        except Exception as e:
+             logger.exception("An unexpected error occurred during the Sniffles2 step:")
+             # Decide if you want to exit
+             # sys.exit("Unexpected error in Sniffles2 step.")
+
+    else:
+        logger.error(f"Input BAM file for Sniffles2 not found: {input_bam_sniffles}. Skipping Sniffles2.")
+        # Decide if you want to exit here
+        # sys.exit("Input BAM for Sniffles2 not found.")
+
+    logger.info("%%%%%%%%%%%%%\n FINISHED SNIFFLES2 (or timed out) \n%%%%%%%%%%%%%")
+
+    # --- Keep the cleanup step ---
+    logger.info("Attempting to clean up any lingering Sniffles processes...")
+    # Use run with capture_output=True to avoid printing errors if no process is found
+    cleanup_result = subprocess.run("pgrep -x sniffles | xargs kill -9", shell=True, capture_output=True, text=True)
+    if cleanup_result.returncode == 0: # pgrep found something
+        logger.info("Kill command sent to potential lingering Sniffles processes.")
+    elif "kill: sending signal to XXX failed: No such process" in cleanup_result.stderr or cleanup_result.returncode != 0:
+         logger.info("No lingering Sniffles processes found by pgrep or kill failed (may be expected if timeout didn't occur or process exited).")
+    else:
+         logger.warning(f"Sniffles cleanup command stderr: {cleanup_result.stderr.strip()}")
+
+    logger.info("Pipeline Complete.") # Assuming this is the last step
 
 if __name__ == '__main__':
    main()
