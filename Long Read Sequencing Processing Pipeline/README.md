@@ -1,7 +1,5 @@
 # ONT PromethION Sequencing Data Processing Pipeline
 
-**Broeckel Lab Bioinformatics (2024-2025)**
-
 ## Overview
 
 This repository contains a Python-based pipeline designed to process and analyze Oxford Nanopore Technologies (ONT) PromethION sequencing data. The pipeline automates several steps, starting from transferring raw data from the PromethION server to performing alignment, variant calling (SNPs, INDELs, SVs), and annotation.
